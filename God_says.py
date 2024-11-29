@@ -1,4 +1,6 @@
-from random import randint, shuffle
+from random import randint, shuffle, sample
+from time import sleep
+import pythonbible as bible
 
 # Pythagorean mapping to convert alphabet to numeric
 pythagorean_gematria_dict = {
@@ -10,35 +12,48 @@ pythagorean_gematria_dict = {
     "z": 8,
 }
 
-# Create list of words
-def load_words():
-    with open('words.txt') as word_file:
-        valid_words = set(word_file.read().split())
-        valid_words = list(valid_words)
-    return valid_words
+# Create list of all Bible verse IDs
+all_bible_verse_ids = list(bible.verses.VERSE_IDS)
 
-# Randomize selection of a numeric value between 1 and 37
-response_range = randint(1,37)
+# Number of verses to randomly select
+number_of_samples = 3
+random_verse_ids = sample(all_bible_verse_ids, number_of_samples)
 
-# Iterate over range of randomized number selected
-# Randomized numbers selected again from the range of total words in our list
-response_range_ints_list = []
-for i in range(response_range):
-    random_word = randint(0,466548)
-    response_range_ints_list.append(random_word)
+# Use randomly selected verse IDs to return scripture
+verse_texts_list = []
+tries = 10
+# for verse in random_verse_ids:
+for i in range(tries):
+    for verse in random_verse_ids:
+        try:
+            verse_texts_list.append(bible.get_verse_text(verse, version=bible.Version.KING_JAMES).replace(",", "").replace(":", "").replace(".", "").split(" "))
+        except bible.VersionMissingVerseError as e:
+            if tries < i:
+                sleep(3)
+                continue
+            else:
+                print(f"Error: {e}")
+        break    
 
-# Select the individual words from our words list using the randomly generated integers
-words = load_words()
-random_words_list = []
-for i in response_range_ints_list:
-    random_words_list.append(words[i].lower())
+# Randomly sample words from each verse
+verses_sampling_list = []
+for i in range(len(verse_texts_list)):
+    random_num_sample = randint(0,len(verse_texts_list[i]))
+    random_word_selection = sample(verse_texts_list[i], random_num_sample)
+    verses_sampling_list.append(random_word_selection)
 
-# Shuffle the list to increase randomization
-shuffle(random_words_list)
+# Shuffle randomly sampled words from each verse
+shuffle(verses_sampling_list)
+
+# Concat 3 lists of randomly sampled words into one list
+concat_verses_sampling_lists = verses_sampling_list[0] + verses_sampling_list[1] + verses_sampling_list[2]
+
+# Shuffle again
+shuffle(concat_verses_sampling_lists)
 
 # Calculate the numerical value of each word using our gematric mapping
 word_numeric_list = []
-for i in random_words_list:
+for i in concat_verses_sampling_lists:
     word_numeric = 0
     for j in i: 
         letter_value = pythagorean_gematria_dict.get(j)
@@ -47,6 +62,6 @@ for i in random_words_list:
     word_numeric_list.append(word_numeric)
 
 # Arrive at Terry's randomized list of words which he interpreted as God speaking to him
-God_says_dict = dict(zip(word_numeric_list, random_words_list))
-God_says = f"God says: \nEncoded: {[*God_says_dict.keys()]} \nDecoded: {[*God_says_dict.values()]}"
+God_says_dict = dict(zip(word_numeric_list, concat_verses_sampling_lists))
+God_says = f"God says: \nDecoded: {[*God_says_dict.values()]} \nEncoded: {[*God_says_dict.keys()]}"
 print(God_says)
